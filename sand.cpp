@@ -3,10 +3,9 @@
 #include <cstdlib>
 #include <ctime>
 
-// ------------ CONFIG -------------
 const int GRID_WIDTH  = 200;
 const int GRID_HEIGHT = 150;
-const int CELL_SIZE   = 4;   // each cell is 4x4 pixels -> 800x600 window
+const int CELL_SIZE   = 4;  
 
 const int WINDOW_WIDTH  = GRID_WIDTH * CELL_SIZE;
 const int WINDOW_HEIGHT = GRID_HEIGHT * CELL_SIZE;
@@ -16,12 +15,9 @@ enum CellType {
     SAND  = 1
 };
 
-// ---------------------------------
-
 int main(int argc, char* argv[]) {
     (void)argc; (void)argv;
 
-    // Seed random for diagonal choice
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -53,7 +49,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // The grid
     std::vector<std::vector<CellType>> grid(
         GRID_HEIGHT, std::vector<CellType>(GRID_WIDTH, EMPTY)
     );
@@ -63,14 +58,12 @@ int main(int argc, char* argv[]) {
     SDL_Event event;
 
     while (running) {
-        // ------------- INPUT -------------
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = false;
             }
         }
 
-        // Mouse input: hold left click to spawn sand
         int mouseX, mouseY;
         Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
         if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) {
@@ -81,22 +74,17 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // ------------- UPDATE -------------
-        // Start newGrid as a copy of grid
         newGrid = grid;
 
-        // Update sand from bottom to top
-        for (int y = GRID_HEIGHT - 2; y >= 0; --y) { // -2: bottom row can't fall further
+        for (int y = GRID_HEIGHT - 2; y >= 0; --y) { 
             for (int x = 0; x < GRID_WIDTH; ++x) {
                 if (grid[y][x] == SAND) {
                     int belowY = y + 1;
 
-                    // Try straight down
                     if (belowY < GRID_HEIGHT && grid[belowY][x] == EMPTY && newGrid[belowY][x] == EMPTY) {
                         newGrid[belowY][x] = SAND;
                         newGrid[y][x] = EMPTY;
                     } else {
-                        // Try down-left or down-right randomly
                         bool moved = false;
 
                         int dir = (std::rand() % 2 == 0) ? -1 : 1;
@@ -109,7 +97,6 @@ int main(int argc, char* argv[]) {
                             newGrid[y][x] = EMPTY;
                             moved = true;
                         } else {
-                            // Try the other side if not moved
                             dir = -dir;
                             nx = x + dir;
                             ny = y + 1;
@@ -121,26 +108,20 @@ int main(int argc, char* argv[]) {
                             }
                         }
 
-                        // If not moved, stays in place (already in newGrid)
-                        (void)moved; // silence unused warning
+                        (void)moved; 
                     }
                 }
             }
         }
 
-        // Swap grids
         grid.swap(newGrid);
 
-        // ------------- RENDER -------------
-        // Clear screen (dark background)
         SDL_SetRenderDrawColor(renderer, 10, 10, 20, 255);
         SDL_RenderClear(renderer);
 
-        // Draw cells
         for (int y = 0; y < GRID_HEIGHT; ++y) {
             for (int x = 0; x < GRID_WIDTH; ++x) {
                 if (grid[y][x] == SAND) {
-                    // sand color
                     SDL_SetRenderDrawColor(renderer, 230, 200, 80, 255);
                     SDL_Rect r;
                     r.x = x * CELL_SIZE;
@@ -155,7 +136,6 @@ int main(int argc, char* argv[]) {
         SDL_RenderPresent(renderer);
     }
 
-    // ------------- CLEANUP -------------
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
