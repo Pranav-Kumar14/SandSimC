@@ -1,62 +1,94 @@
 # Sand Falling Simulator (C++ & SDL2)
 
-A simple falling-sand sandbox built in C++ using SDL2. Click to place sand and watch it fall and slide like granular physics. Built as a beginner-friendly cellular automata simulation with pixel-art style rendering.
+Interactive falling-sand sandbox built in C++ using SDL2.  
+Click to drop sand and watch it fall, stack, and slide with simple physics.  
+Includes a Restart button, pixel-art grid and smooth simulation loop.
+
+---
 
 ## Features
-- Falling sand physics
-- Pixel-style grid rendering
+- Falling sand physics using a cellular-automata model
+- Pixel grid visual style
 - Click to spawn sand
-- Smooth animation using SDL2
-- Lightweight and easy to extend (water, stone, etc.)
+- Restart button to clear the screen
+- SDL2 rendering with VSync
+- Easy to extend (new materials like water, stone, etc.)
+
+---
 
 ## Requirements (macOS)
-You need:
+You need these installed:
 - Homebrew
 - Xcode Command Line Tools
 - SDL2
+- SDL2_ttf (for rendering text )
 
-Install them:
+Install if needed:
 
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 xcode-select --install
-brew install sdl2
+brew install sdl2 sdl2_ttf
+
+---
+
+## Add Font File
+Place a `.ttf` font in the same folder as `sand.cpp`, for example:
+
+OpenSans-Regular.ttf
+
+---
 
 ## Build & Run (macOS)
 Compile using:
 
-clang++ sand.cpp -o sand -I/opt/homebrew/opt/sdl2/include -L/opt/homebrew/opt/sdl2/lib -lSDL2
+clang++ sand.cpp -o sand \
+  -I/opt/homebrew/include \
+  -I/opt/homebrew/opt/sdl2/include \
+  -I/opt/homebrew/opt/sdl2_ttf/include \
+  -L/opt/homebrew/lib \
+  -L/opt/homebrew/opt/sdl2/lib \
+  -L/opt/homebrew/opt/sdl2_ttf/lib \
+  -lSDL2 -lSDL2_ttf
 
 Then run:
 
 ./sand
 
-If SDL2 include errors occur, try:
-
-clang++ sand.cpp -o sand -I/opt/homebrew/include -L/opt/homebrew/lib -lSDL2
+---
 
 ## Controls
-- Hold Left Mouse Button → Spawn falling sand
-- Close Window → Exit
+Hold Left Mouse Button → Spawn falling sand  
+Click Restart Button → Clear the world  
+Close Window → Exit
+
+---
 
 ## How It Works
-Each sand grain is represented as a cell in a grid.
+Each sand grain acts as a cell in a fixed grid.
 
-Simulation rule per frame:
-1. Move down if empty
-2. Else move down-left or down-right if empty
-3. Else stay
+Every frame, each grain tries in order:
+1. Move down
+2. Move down-left or down-right if blocked
+3. Otherwise stay put
 
-This creates natural falling/stacking behavior.
+This produces realistic piling and sliding behavior.
+
+---
 
 ## Planned Improvements
-- More materials: water, stone, smoke
-- Brush size option
-- UI to select materials
-- Sand color variations
-- Save/Load worlds
+- Water, stone, smoke materials
+- Right-click → eraser
+- Brush size options
+- UI toolbar to select materials
+- Randomized sand color variation
+- Save/load sandbox state
+
+---
 
 ## License
 MIT License
+
+---
 
 ## Author
 Pranav Kumar
