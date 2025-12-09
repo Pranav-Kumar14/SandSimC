@@ -15,11 +15,13 @@ const int WINDOW_HEIGHT = UI_HEIGHT + GRID_HEIGHT * CELL_SIZE;
 
 enum CellType {
     EMPTY = 0,
-    SAND  = 1
+    SAND  = 1,
+    WATER = 2
 };
 
 enum Tool {
-    TOOL_SAND = 0
+    TOOL_SAND = 0,
+    TOOL_WATER = 1
 };
 
 const int BUTTON_X      = 10;
@@ -31,6 +33,11 @@ const int SAND_BUTTON_X = BUTTON_X + BUTTON_W + 10;
 const int SAND_BUTTON_Y = 5;
 const int SAND_BUTTON_W = 100;
 const int SAND_BUTTON_H = 30;
+
+const int WATER_BUTTON_X = SAND_BUTTON_X + SAND_BUTTON_W + 10;
+const int WATER_BUTTON_Y = 5;
+const int WATER_BUTTON_W = 100;
+const int WATER_BUTTON_H = 30;
 
 const int EXIT_BUTTON_W = 100;
 const int EXIT_BUTTON_H = 30;
@@ -102,7 +109,7 @@ int main(int argc, char* argv[]) {
     bool running = true;
     SDL_Event event;
 
-    Tool currentTool = TOOL_SAND; 
+    Tool currentTool = TOOL_SAND;
 
     while (running) {
         while (SDL_PollEvent(&event)) {
@@ -126,6 +133,11 @@ int main(int argc, char* argv[]) {
                 }
 
                 if (isInsideButton(mouseX, mouseY,
+                                   WATER_BUTTON_X, WATER_BUTTON_Y, WATER_BUTTON_W, WATER_BUTTON_H)) {
+                    currentTool = TOOL_WATER;
+                }
+
+                if (isInsideButton(mouseX, mouseY,
                                    EXIT_BUTTON_X, EXIT_BUTTON_Y, EXIT_BUTTON_W, EXIT_BUTTON_H)) {
                     running = false;
                 }
@@ -136,6 +148,8 @@ int main(int argc, char* argv[]) {
                 if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT) {
                     if (currentTool == TOOL_SAND) {
                         grid[gy][gx] = SAND;
+                    } else if (currentTool == TOOL_WATER) {
+                        grid[gy][gx] = WATER;
                     }
                 }
             }
@@ -170,6 +184,46 @@ int main(int argc, char* argv[]) {
                                 newGrid[ny][nx] == EMPTY) {
                                 newGrid[ny][nx] = SAND;
                                 newGrid[y][x] = EMPTY;
+                            }
+                        }
+                    }
+                } else if (grid[y][x] == WATER) {
+                    int belowY = y + 1;
+                    bool moved = false;
+
+                    if (belowY < GRID_HEIGHT &&
+                        grid[belowY][x] == EMPTY &&
+                        newGrid[belowY][x] == EMPTY) {
+                        newGrid[belowY][x] = WATER;
+                        newGrid[y][x] = EMPTY;
+                        moved = true;
+                    } else {
+                        int dirs[2] = {-1, 1};
+                        if (std::rand() % 2) std::swap(dirs[0], dirs[1]);
+
+                        for (int i = 0; i < 2 && !moved; ++i) {
+                            int nx = x + dirs[i];
+                            int ny = y + 1;
+                            if (nx >= 0 && nx < GRID_WIDTH && ny < GRID_HEIGHT &&
+                                grid[ny][nx] == EMPTY &&
+                                newGrid[ny][nx] == EMPTY) {
+                                newGrid[ny][nx] = WATER;
+                                newGrid[y][x] = EMPTY;
+                                moved = true;
+                            }
+                        }
+
+                        if (!moved) {
+                            for (int i = 0; i < 2 && !moved; ++i) {
+                                int nx = x + dirs[i];
+                                int ny = y;
+                                if (nx >= 0 && nx < GRID_WIDTH &&
+                                    grid[ny][nx] == EMPTY &&
+                                    newGrid[ny][nx] == EMPTY) {
+                                    newGrid[ny][nx] = WATER;
+                                    newGrid[y][x] = EMPTY;
+                                    moved = true;
+                                }
                             }
                         }
                     }
@@ -230,6 +284,27 @@ int main(int argc, char* argv[]) {
             SDL_FreeSurface(txtSand);
         }
 
+        SDL_SetRenderDrawColor(renderer, 60, 120, 220, 255);
+        SDL_Rect waterRect = { WATER_BUTTON_X, WATER_BUTTON_Y, WATER_BUTTON_W, WATER_BUTTON_H };
+        SDL_RenderFillRect(renderer, &waterRect);
+
+        SDL_Surface* txtWater = TTF_RenderText_Blended(font, "Water", white);
+        if (txtWater) {
+            SDL_Texture* texWater = SDL_CreateTextureFromSurface(renderer, txtWater);
+            if (texWater) {
+                int textW = txtWater->w;
+                int textH = txtWater->h;
+                SDL_Rect waterTextRect = {
+                    WATER_BUTTON_X + (WATER_BUTTON_W - textW) / 2,
+                    WATER_BUTTON_Y + (WATER_BUTTON_H - textH) / 2,
+                    textW, textH
+                };
+                SDL_RenderCopy(renderer, texWater, NULL, &waterTextRect);
+                SDL_DestroyTexture(texWater);
+            }
+            SDL_FreeSurface(txtWater);
+        }
+
         SDL_SetRenderDrawColor(renderer, 80, 80, 200, 255);
         SDL_Rect exitRect = { EXIT_BUTTON_X, EXIT_BUTTON_Y, EXIT_BUTTON_W, EXIT_BUTTON_H };
         SDL_RenderFillRect(renderer, &exitRect);
@@ -255,6 +330,11 @@ int main(int argc, char* argv[]) {
             for (int x = 0; x < GRID_WIDTH; ++x) {
                 if (grid[y][x] == SAND) {
                     SDL_SetRenderDrawColor(renderer, 230, 200, 80, 255);
+                    SDL_Rect r = { x * CELL_SIZE, UI_HEIGHT + y * CELL_SIZE,
+                                   CELL_SIZE, CELL_SIZE };
+                    SDL_RenderFillRect(renderer, &r);
+                } else if (grid[y][x] == WATER) {
+                    SDL_SetRenderDrawColor(renderer, 70, 130, 240, 255);
                     SDL_Rect r = { x * CELL_SIZE, UI_HEIGHT + y * CELL_SIZE,
                                    CELL_SIZE, CELL_SIZE };
                     SDL_RenderFillRect(renderer, &r);
