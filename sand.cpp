@@ -18,15 +18,24 @@ enum CellType {
     SAND  = 1
 };
 
-const int BUTTON_X = 10;
-const int BUTTON_Y = 5;
-const int BUTTON_W = 100;
-const int BUTTON_H = 30;
+enum Tool {
+    TOOL_SAND = 0
+};
 
-const int EXIT_BUTTON_X = 120;
-const int EXIT_BUTTON_Y = 5;
+const int BUTTON_X      = 10;
+const int BUTTON_Y      = 5;
+const int BUTTON_W      = 100;
+const int BUTTON_H      = 30;
+
+const int SAND_BUTTON_X = BUTTON_X + BUTTON_W + 10;
+const int SAND_BUTTON_Y = 5;
+const int SAND_BUTTON_W = 100;
+const int SAND_BUTTON_H = 30;
+
 const int EXIT_BUTTON_W = 100;
 const int EXIT_BUTTON_H = 30;
+const int EXIT_BUTTON_X = WINDOW_WIDTH - EXIT_BUTTON_W - 10;
+const int EXIT_BUTTON_Y = 5;
 
 bool isInsideButton(int mx, int my, int bx, int by, int bw, int bh) {
     return mx >= bx && mx <= bx + bw &&
@@ -93,6 +102,8 @@ int main(int argc, char* argv[]) {
     bool running = true;
     SDL_Event event;
 
+    Tool currentTool = TOOL_SAND; 
+
     while (running) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) running = false;
@@ -103,22 +114,30 @@ int main(int argc, char* argv[]) {
 
         if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) {
             if (mouseY < UI_HEIGHT) {
-
                 if (isInsideButton(mouseX, mouseY, BUTTON_X, BUTTON_Y, BUTTON_W, BUTTON_H)) {
                     for (int y = 0; y < GRID_HEIGHT; ++y)
                         for (int x = 0; x < GRID_WIDTH; ++x)
                             grid[y][x] = EMPTY;
                 }
 
-                if (isInsideButton(mouseX, mouseY, EXIT_BUTTON_X, EXIT_BUTTON_Y, EXIT_BUTTON_W, EXIT_BUTTON_H)) {
+                if (isInsideButton(mouseX, mouseY,
+                                   SAND_BUTTON_X, SAND_BUTTON_Y, SAND_BUTTON_W, SAND_BUTTON_H)) {
+                    currentTool = TOOL_SAND;
+                }
+
+                if (isInsideButton(mouseX, mouseY,
+                                   EXIT_BUTTON_X, EXIT_BUTTON_Y, EXIT_BUTTON_W, EXIT_BUTTON_H)) {
                     running = false;
                 }
 
             } else {
                 int gx = mouseX / CELL_SIZE;
                 int gy = (mouseY - UI_HEIGHT) / CELL_SIZE;
-                if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT)
-                    grid[gy][gx] = SAND;
+                if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT) {
+                    if (currentTool == TOOL_SAND) {
+                        grid[gy][gx] = SAND;
+                    }
+                }
             }
         }
 
@@ -167,37 +186,81 @@ int main(int argc, char* argv[]) {
         SDL_Rect uiRect = {0, 0, WINDOW_WIDTH, UI_HEIGHT};
         SDL_RenderFillRect(renderer, &uiRect);
 
-        // Restart Button
+        SDL_Color white = {255, 255, 255, 255};
+
         SDL_SetRenderDrawColor(renderer, 200, 50, 50, 255);
         SDL_Rect restartRect = { BUTTON_X, BUTTON_Y, BUTTON_W, BUTTON_H };
         SDL_RenderFillRect(renderer, &restartRect);
 
-        SDL_Color white = {255, 255, 255, 255};
         SDL_Surface* txtRestart = TTF_RenderText_Blended(font, "Restart", white);
-        SDL_Texture* texRestart = SDL_CreateTextureFromSurface(renderer, txtRestart);
-        SDL_Rect restartTextRect = { BUTTON_X + 15, BUTTON_Y + 5, txtRestart->w, txtRestart->h };
-        SDL_RenderCopy(renderer, texRestart, NULL, &restartTextRect);
-        SDL_FreeSurface(txtRestart);
-        SDL_DestroyTexture(texRestart);
+        if (txtRestart) {
+            SDL_Texture* texRestart = SDL_CreateTextureFromSurface(renderer, txtRestart);
+            if (texRestart) {
+                int textW = txtRestart->w;
+                int textH = txtRestart->h;
+                SDL_Rect restartTextRect = {
+                    BUTTON_X + (BUTTON_W - textW) / 2,
+                    BUTTON_Y + (BUTTON_H - textH) / 2,
+                    textW, textH
+                };
+                SDL_RenderCopy(renderer, texRestart, NULL, &restartTextRect);
+                SDL_DestroyTexture(texRestart);
+            }
+            SDL_FreeSurface(txtRestart);
+        }
+
+        SDL_SetRenderDrawColor(renderer, 200, 180, 60, 255);
+        SDL_Rect sandRect = { SAND_BUTTON_X, SAND_BUTTON_Y, SAND_BUTTON_W, SAND_BUTTON_H };
+        SDL_RenderFillRect(renderer, &sandRect);
+
+        SDL_Surface* txtSand = TTF_RenderText_Blended(font, "Sand", white);
+        if (txtSand) {
+            SDL_Texture* texSand = SDL_CreateTextureFromSurface(renderer, txtSand);
+            if (texSand) {
+                int textW = txtSand->w;
+                int textH = txtSand->h;
+                SDL_Rect sandTextRect = {
+                    SAND_BUTTON_X + (SAND_BUTTON_W - textW) / 2,
+                    SAND_BUTTON_Y + (SAND_BUTTON_H - textH) / 2,
+                    textW, textH
+                };
+                SDL_RenderCopy(renderer, texSand, NULL, &sandTextRect);
+                SDL_DestroyTexture(texSand);
+            }
+            SDL_FreeSurface(txtSand);
+        }
 
         SDL_SetRenderDrawColor(renderer, 80, 80, 200, 255);
         SDL_Rect exitRect = { EXIT_BUTTON_X, EXIT_BUTTON_Y, EXIT_BUTTON_W, EXIT_BUTTON_H };
         SDL_RenderFillRect(renderer, &exitRect);
 
         SDL_Surface* txtExit = TTF_RenderText_Blended(font, "Exit", white);
-        SDL_Texture* texExit = SDL_CreateTextureFromSurface(renderer, txtExit);
-        SDL_Rect exitTextRect = { EXIT_BUTTON_X + 30, EXIT_BUTTON_Y + 5, txtExit->w, txtExit->h };
-        SDL_RenderCopy(renderer, texExit, NULL, &exitTextRect);
-        SDL_FreeSurface(txtExit);
-        SDL_DestroyTexture(texExit);
+        if (txtExit) {
+            SDL_Texture* texExit = SDL_CreateTextureFromSurface(renderer, txtExit);
+            if (texExit) {
+                int textW = txtExit->w;
+                int textH = txtExit->h;
+                SDL_Rect exitTextRect = {
+                    EXIT_BUTTON_X + (EXIT_BUTTON_W - textW) / 2,
+                    EXIT_BUTTON_Y + (EXIT_BUTTON_H - textH) / 2,
+                    textW, textH
+                };
+                SDL_RenderCopy(renderer, texExit, NULL, &exitTextRect);
+                SDL_DestroyTexture(texExit);
+            }
+            SDL_FreeSurface(txtExit);
+        }
 
-        for (int y = 0; y < GRID_HEIGHT; ++y)
-            for (int x = 0; x < GRID_WIDTH; ++x)
+        for (int y = 0; y < GRID_HEIGHT; ++y) {
+            for (int x = 0; x < GRID_WIDTH; ++x) {
                 if (grid[y][x] == SAND) {
                     SDL_SetRenderDrawColor(renderer, 230, 200, 80, 255);
-                    SDL_Rect r = { x * CELL_SIZE, UI_HEIGHT + y * CELL_SIZE, CELL_SIZE, CELL_SIZE };
+                    SDL_Rect r = { x * CELL_SIZE, UI_HEIGHT + y * CELL_SIZE,
+                                   CELL_SIZE, CELL_SIZE };
                     SDL_RenderFillRect(renderer, &r);
                 }
+            }
+        }
 
         SDL_RenderPresent(renderer);
     }
