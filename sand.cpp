@@ -23,9 +23,14 @@ const int BUTTON_Y = 5;
 const int BUTTON_W = 100;
 const int BUTTON_H = 30;
 
-bool isInsideButton(int mx, int my) {
-    return mx >= BUTTON_X && mx <= BUTTON_X + BUTTON_W &&
-           my >= BUTTON_Y && my <= BUTTON_Y + BUTTON_H;
+const int EXIT_BUTTON_X = 120;
+const int EXIT_BUTTON_Y = 5;
+const int EXIT_BUTTON_W = 100;
+const int EXIT_BUTTON_H = 30;
+
+bool isInsideButton(int mx, int my, int bx, int by, int bw, int bh) {
+    return mx >= bx && mx <= bx + bw &&
+           my >= by && my <= by + bh;
 }
 
 int main(int argc, char* argv[]) {
@@ -90,9 +95,7 @@ int main(int argc, char* argv[]) {
 
     while (running) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                running = false;
-            }
+            if (event.type == SDL_QUIT) running = false;
         }
 
         int mouseX, mouseY;
@@ -100,19 +103,22 @@ int main(int argc, char* argv[]) {
 
         if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) {
             if (mouseY < UI_HEIGHT) {
-                if (isInsideButton(mouseX, mouseY)) {
-                    for (int y = 0; y < GRID_HEIGHT; ++y) {
-                        for (int x = 0; x < GRID_WIDTH; ++x) {
+
+                if (isInsideButton(mouseX, mouseY, BUTTON_X, BUTTON_Y, BUTTON_W, BUTTON_H)) {
+                    for (int y = 0; y < GRID_HEIGHT; ++y)
+                        for (int x = 0; x < GRID_WIDTH; ++x)
                             grid[y][x] = EMPTY;
-                        }
-                    }
                 }
+
+                if (isInsideButton(mouseX, mouseY, EXIT_BUTTON_X, EXIT_BUTTON_Y, EXIT_BUTTON_W, EXIT_BUTTON_H)) {
+                    running = false;
+                }
+
             } else {
                 int gx = mouseX / CELL_SIZE;
-                int gy = (mouseY - UI_HEIGHT) / CELL_SIZE; 
-                if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT) {
+                int gy = (mouseY - UI_HEIGHT) / CELL_SIZE;
+                if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT)
                     grid[gy][gx] = SAND;
-                }
             }
         }
 
@@ -126,34 +132,27 @@ int main(int argc, char* argv[]) {
                     if (belowY < GRID_HEIGHT &&
                         grid[belowY][x] == EMPTY &&
                         newGrid[belowY][x] == EMPTY) {
-
                         newGrid[belowY][x] = SAND;
                         newGrid[y][x] = EMPTY;
                     } else {
-                        bool moved = false;
-
-                        int dir = (std::rand() % 2 == 0) ? -1 : 1;
-                        int nx = x + dir;
-                        int ny = y + 1;
+                        int dir = (std::rand() % 2 ? -1 : 1);
+                        int nx = x + dir, ny = y + 1;
 
                         if (nx >= 0 && nx < GRID_WIDTH && ny < GRID_HEIGHT &&
-                            grid[ny][nx] == EMPTY && newGrid[ny][nx] == EMPTY) {
+                            grid[ny][nx] == EMPTY &&
+                            newGrid[ny][nx] == EMPTY) {
                             newGrid[ny][nx] = SAND;
                             newGrid[y][x] = EMPTY;
-                            moved = true;
                         } else {
                             dir = -dir;
                             nx = x + dir;
-                            ny = y + 1;
-                            if (nx >= 0 && nx < GRID_WIDTH && ny < GRID_HEIGHT &&
-                                grid[ny][nx] == EMPTY && newGrid[ny][nx] == EMPTY) {
+                            if (nx >= 0 && nx < GRID_WIDTH &&
+                                grid[ny][nx] == EMPTY &&
+                                newGrid[ny][nx] == EMPTY) {
                                 newGrid[ny][nx] = SAND;
                                 newGrid[y][x] = EMPTY;
-                                moved = true;
                             }
                         }
-
-                        (void)moved;
                     }
                 }
             }
@@ -168,43 +167,37 @@ int main(int argc, char* argv[]) {
         SDL_Rect uiRect = {0, 0, WINDOW_WIDTH, UI_HEIGHT};
         SDL_RenderFillRect(renderer, &uiRect);
 
-        SDL_Rect buttonRect = { BUTTON_X, BUTTON_Y, BUTTON_W, BUTTON_H };
+        // Restart Button
         SDL_SetRenderDrawColor(renderer, 200, 50, 50, 255);
-        SDL_RenderFillRect(renderer, &buttonRect);
+        SDL_Rect restartRect = { BUTTON_X, BUTTON_Y, BUTTON_W, BUTTON_H };
+        SDL_RenderFillRect(renderer, &restartRect);
 
         SDL_Color white = {255, 255, 255, 255};
-        SDL_Surface* textSurface = TTF_RenderText_Blended(font, "Restart", white);
-        if (textSurface) {
-            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-            if (textTexture) {
-                int textW, textH;
-                SDL_QueryTexture(textTexture, nullptr, nullptr, &textW, &textH);
+        SDL_Surface* txtRestart = TTF_RenderText_Blended(font, "Restart", white);
+        SDL_Texture* texRestart = SDL_CreateTextureFromSurface(renderer, txtRestart);
+        SDL_Rect restartTextRect = { BUTTON_X + 15, BUTTON_Y + 5, txtRestart->w, txtRestart->h };
+        SDL_RenderCopy(renderer, texRestart, NULL, &restartTextRect);
+        SDL_FreeSurface(txtRestart);
+        SDL_DestroyTexture(texRestart);
 
-                SDL_Rect textRect;
-                textRect.w = textW;
-                textRect.h = textH;
-                textRect.x = BUTTON_X + (BUTTON_W - textW) / 2;
-                textRect.y = BUTTON_Y + (BUTTON_H - textH) / 2;
+        SDL_SetRenderDrawColor(renderer, 80, 80, 200, 255);
+        SDL_Rect exitRect = { EXIT_BUTTON_X, EXIT_BUTTON_Y, EXIT_BUTTON_W, EXIT_BUTTON_H };
+        SDL_RenderFillRect(renderer, &exitRect);
 
-                SDL_RenderCopy(renderer, textTexture, nullptr, &textRect);
-                SDL_DestroyTexture(textTexture);
-            }
-            SDL_FreeSurface(textSurface);
-        }
+        SDL_Surface* txtExit = TTF_RenderText_Blended(font, "Exit", white);
+        SDL_Texture* texExit = SDL_CreateTextureFromSurface(renderer, txtExit);
+        SDL_Rect exitTextRect = { EXIT_BUTTON_X + 30, EXIT_BUTTON_Y + 5, txtExit->w, txtExit->h };
+        SDL_RenderCopy(renderer, texExit, NULL, &exitTextRect);
+        SDL_FreeSurface(txtExit);
+        SDL_DestroyTexture(texExit);
 
-        for (int y = 0; y < GRID_HEIGHT; ++y) {
-            for (int x = 0; x < GRID_WIDTH; ++x) {
+        for (int y = 0; y < GRID_HEIGHT; ++y)
+            for (int x = 0; x < GRID_WIDTH; ++x)
                 if (grid[y][x] == SAND) {
                     SDL_SetRenderDrawColor(renderer, 230, 200, 80, 255);
-                    SDL_Rect r;
-                    r.x = x * CELL_SIZE;
-                    r.y = UI_HEIGHT + y * CELL_SIZE; 
-                    r.w = CELL_SIZE;
-                    r.h = CELL_SIZE;
+                    SDL_Rect r = { x * CELL_SIZE, UI_HEIGHT + y * CELL_SIZE, CELL_SIZE, CELL_SIZE };
                     SDL_RenderFillRect(renderer, &r);
                 }
-            }
-        }
 
         SDL_RenderPresent(renderer);
     }
@@ -214,5 +207,6 @@ int main(int argc, char* argv[]) {
     SDL_DestroyWindow(window);
     TTF_Quit();
     SDL_Quit();
+
     return 0;
 }
